@@ -16,7 +16,7 @@ async function find(token, id=0)
   jwt.verify(token, secrets.jwtSecret);
   let {username, authentication} = jwt.decode(token);
   
-  if(!username || !authentication) throw "unauthorized access to database, please login333"
+  if(!username || !authentication) throw "unauthorized access to database, please login"
   let user = await db('users')
   .where({ username }).first();
   if(authentication !== user.authentication) throw "unauthorized access to database, please login"
@@ -29,7 +29,6 @@ async function login(username, password)
 {
   let user = await db('users')
   .where("username", username).first();
-  //console.log(bcrypt.hashSync(password,salt) + "        :        ", user.authentication);
   if(bcrypt.compareSync(password, user.authentication)) return {token: await generateToken(user)}
   throw "username and password do not match";
 }
