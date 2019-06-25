@@ -8,29 +8,35 @@ module.exports = {
   login,
   register,
   userExists,
-  find
+  find,
+  checkAuth
 };
 
 async function find(token, id=0)
 {
-  jwt.verify(token, secrets.jwtSecret);
-  let {username, authentication} = jwt.decode(token);
+  if(!await checkAuth(token)) throw "Unauthorized access to database, please login";
   
-  if(!username || !authentication) throw "unauthorized access to database, please login"
-  let user = await db('users')
-  .where({ username }).first();
-  if(authentication !== user.authentication) throw "unauthorized access to database, please login"
   if(id > 0) return db('users')
   .where({id}).first();
   return db('users');
 }
-
+async function checkAuth(token)
+{
+  jwt.verify(token, secrets.jwtSecret);
+  let {username, authentication} = jwt.decode(token);
+  
+  if(!username || !authentication) return null;
+  let user = await db('users')
+  .where({ username }).first();
+  if(authentication !== user.authentication) return null;
+  return username;
+}
 async function login(username, password) 
 {
   let user = await db('users')
   .where("username", username).first();
   if(bcrypt.compareSync(password, user.authentication)) return {token: await generateToken(user)}
-  throw "username and password do not match";
+  throw "Username and password do not match";
 }
 
 function createToken(user)
@@ -40,10 +46,10 @@ function createToken(user)
 
 async function userExists(username)
 {
-  if(!username) throw "username must be defined"
+  if(!username) throw "Username must be defined"
   let flag = await db('users')
   .where("username", username);
-  if(flag.length > 0 ) throw "this username already exists"
+  if(flag.length > 0 ) throw "This username already exists"
 }
 
 async function register(username, password)
