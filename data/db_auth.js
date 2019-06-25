@@ -51,7 +51,7 @@ async function register(username, password)
   let passwordhash = bcrypt.hashSync(password,salt);
   let user = await db("users")
   .insert({username: username, authentication: passwordhash});
-  return {token: await generateToken(user)};
+  return await login(username, password);
 }
 
 
