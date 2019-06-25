@@ -1,6 +1,7 @@
 require('dotenv').config();
 const session = require('express-session');
-const db = require('./data/db_model');
+const db_auth = require('./data/db_auth');
+const db_words = require('./data/db_words')
 const cors = require('cors');
 const express = require('express');
 const helmet = require('helmet');
@@ -19,15 +20,21 @@ server.listen(port, function() {
 });
 
 
+server.get("/api/words",
+  (req,res) => { db_words.getNewWord()
+  .then(result => res.status(200).json(result))
+  .catch(err => res.status(400).json({error: err, message: "could not gather from database"}))
+  });
+
 server.get("/api/users/:id",
-  (req,res) => { db.find(req.headers.token, req.params.id)
+  (req,res) => { db_auth.find(req.headers.token, req.params.id)
   .then(result => res.status(200).json(result))
   .catch(err => res.status(400).json({error: err, message: "could not gather from database"}))}
 );
 
 server.get("/api/users/",
 (req,res) => 
-db.find(req.headers.token)
+db_auth.find(req.headers.token)
 .then(result => res.status(200).json(result))
 .catch(err => res.status(400).json({error: err, message: "could not gather from database"}))
 );
@@ -35,11 +42,11 @@ db.find(req.headers.token)
 server.post("/api/register",
   (req,res,next) =>
   {
-  db.userExists(req.body.username).then(() => 
+  db_auth.userExists(req.body.username).then(() => 
   {
-     if(!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/.exec(req.body.password))
-      return res.status(400).json({error: "badd password", message: "password must contain 8 characters and have one upper, one lower, and one number"}); 
-    db.register(req.body.username, req.body.password)
+    if(!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/.exec(req.body.password))
+      return res.status(400).json({error: "bad password", message: "password must contain 8 characters and have one upper, one lower, and one number"});
+    db_auth.register(req.body.username, req.body.password)
         .then(result => res.status(201).json(result))
         .catch(err => res.status(500).json({error: err, message: "interal error"}))
   }
@@ -49,7 +56,7 @@ server.post("/api/register",
 
 server.post("/api/login",
   (req,res,next) => 
-  db.login(req.body.username, req.body.password)
+  db_auth.login(req.body.username, req.body.password)
   .then(result => {
     res.status(200).json(result)
   })
