@@ -16,7 +16,7 @@ https://bw-conjugator.herokuapp.com/
 ##### indicative_i: 0,
 ##### subjunctive_c: 0,
 ##### subjunctive_i: 0,
-⋅##### imperative_c: 0,
+##### imperative_c: 0,
 ##### imperative_i: 0,
 
 ###### //tenses
