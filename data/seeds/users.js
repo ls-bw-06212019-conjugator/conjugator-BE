@@ -4,10 +4,6 @@ exports.seed = function(knex, Promise) {
   return knex('users').del()
     .then(function () {
       // Inserts seed entries
-      return knex('users').insert([
-        {id: 1, username: 'a', authentication: '1'},
-        {id: 2, username: 'b', authentication: '2'},
-        {id: 3, username: 'c', authentication: '3'}
-      ]);
+      return knex('users').insert([]); //making this blank due to an error
     });
 };
