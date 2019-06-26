@@ -8,20 +8,32 @@ module.exports = {
     findWord
   };
 
+const pronouns = 
+[ 
+   {key: "form 1s", data: ["yo"]},
+   {key: "form 2s", data: ["tú","usted"]},
+   {key: "form 3s", data: ["él", "ella"]},
+   {key: "form 1p", data: ["nosotros", "nosotras"]},
+   {key: "form 2p", data: ["vosotros", "vosotras", "ustedes"]},
+   {key: "form 3p", data: ["ellos", "ellas"]}
+]
+
 async function getNewWord(token)
 {
-    let type = await db.raw("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' ORDER BY random() limit 1; ");
-    type = type.rows[0].column_name;
-    let infinitive =  await db.raw("SELECT * FROM verbs ORDER BY random() LIMIT 1");
-    infinitive = infinitive.rows[0];
-    let broketype = type.split("__").map(x=> x.split("_").join(" "));
-    let data = {id: infinitive.id, infinitive: infinitive.infinitive, type: broketype[0], tense: broketype[1], form: broketype[2], infinitive_english: infinitive.infinitive_english, answer: infinitive[type]}
-    return data;
+   let type = await db.raw("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' ORDER BY random() limit 1; ");
+   type = type.rows[0].column_name;
+   let infinitive =  await db.raw("SELECT * FROM verbs ORDER BY random() LIMIT 1");
+   infinitive = infinitive.rows[0];
+   let broketype = type.split("__").map(x=> x.split("_").join(" "));
+   let pr = pronouns.filter(x=> x.key === broketype[2])[0].data;
+   pr = pr[Math.floor(Math.random() * Math.floor(pr.length-1))];
+   let data = {id: infinitive.id, infinitive: infinitive.infinitive, type: broketype[0], tense: broketype[1], form: pr, infinitive_english: infinitive.infinitive_english, answer: infinitive[type]}
+   return data;
 };
 
 async function addStats(obj, token=null)
 {
-   let {id, type, tense, correct} = obj
+   let {id, type, tense, correct} = obj;
    if(!id || !type || !tense || correct === undefined) throw "You must commit the correct data";
    type = type.split(" ").join("_"); tense = tense.split(" ").join("_");
    var column_type = `${type}_${correct ? "c" : "i"}`
@@ -34,9 +46,18 @@ async function addStats(obj, token=null)
      username = await db_auth.checkAuth(token);
       if(!username) return {message: "add compete: Global only due to invalid token"}
    } catch { return {message: "add compete: Global only due to invalid token"} }
-   await db.raw(`UPDATE users SET ${column_type} = array_append(${column_type},${obj.id}) WHERE username = '${username}'`)
-   //await db.raw(`UPDATE users SET ${column_tense} = array_append(${column_tense},${obj.id}) WHERE username = '${username}'`) //add after runing migration
-   return {message: "add complete: Global and Personal"}
+   await db.raw(`UPDATE users SET ${column_type} = array_append(${column_type},${obj.id}), ${column_tense} = array_append(${column_tense},${obj.id}) WHERE username = '${username}'`)
+   //await db.raw(`UPDATE users SET `) //add after runing migration
+
+   if(!correct){await db.raw(`UPDATE users SET current_streak = 0 WHERE username = '${username}'`); return {message: "add complete: Global and Personal"};}
+   
+   let streak = await db.raw(`SELECT best_streak, current_streak FROM users WHERE username = '${username}'`)
+   streak = streak.rows[0];
+   await db.raw(`UPDATE users SET current_streak = current_streak + 1 WHERE username = '${username}' `);
+   if(streak.best_streak <= streak.current_streak+1) await db.raw(`UPDATE users SET best_streak = ${streak.current_streak} + 1 WHERE username = '${username}'`)
+   return {message: "add complete: Global and Personal"};
+   
+   
 }
 async function findWord(id)
 {
@@ -44,7 +65,7 @@ async function findWord(id)
    if(word.rows.length < 1) throw "This id doesnt exist";
    word = word.rows[0];
    return word;
-}
+} 
 async function getStats(token = null)
 {
    var global =  await db.raw("SELECT * FROM global_stats");
