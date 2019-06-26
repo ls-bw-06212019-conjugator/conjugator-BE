@@ -55,7 +55,7 @@ async function addStats(obj, token=null)
    streak = streak.rows[0];
    await db.raw(`UPDATE users SET current_streak = current_streak + 1 WHERE username = '${username}' `);
    if(streak.best_streak <= streak.current_streak+1) await db.raw(`UPDATE users SET best_streak = ${streak.current_streak} + 1 WHERE username = '${username}'`)
-   return {message: "add complete: Global and Personal"};
+   return {message: "add complete: Global and Personal"};;
    
    
 }

@@ -31,8 +31,8 @@ exports.seed = function(knex, Promise) {
           future_perfect_i: 0,
           past_perfect_c: 0,
           past_perfect_i: 0,
-          preterit_archaic_c: 0,
-          preterit_archaic_i: 0,
+          preterite_archaic_c: 0,
+          preterite_archaic_i: 0,
           conditional_perfect_c: 0,
           conditional_perfect_i: 0
         }
