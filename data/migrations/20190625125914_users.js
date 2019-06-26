@@ -1,3 +1,4 @@
+const defaultSettings = require("../db_words").defaultFilter;
 
 exports.up = function(knex, Promise) {
     return knex.schema.createTable('users', function(tbl) {
@@ -12,7 +13,7 @@ exports.up = function(knex, Promise) {
         tbl.integer("best_streak",4096).defaultTo(0);
         
         //settings
-        //todo
+        tbl.string("settings", 4096).defaultTo(defaultSettings.join(","));
 
         //stats
         //mood
