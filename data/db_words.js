@@ -1,7 +1,7 @@
 const db = require('./dbConfig');
 const db_auth = require('./db_auth.js');
 
-const defaultFilter = ['imperative', 'subjuctive', 'archaic']
+const defaultFilter = ['imperative', 'subjunctive','future','imperfect','conditional','present_perfect','future_perfect','past_perfect','preterite_archaic','conditional_perfect' ];
 
 module.exports = {
     getNewWord,
@@ -28,18 +28,19 @@ async function getNewWord(filter=null, token=null, secondTime=false) //gets a ne
    if(!filter) filter = defaultFilter;
    if(token){filter = await getSettings(token); filter = filter.filter;}
    //NOTE: this is a subtractive method not Additive so Keep in mind if you add new columns to verb you will need to eliminate any columns that arent answers
+   if(filter[0]==='') filter = [];
    let baseFilter = "TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' and NOT COLUMN_NAME = 'id'"; //removes all columns that arent conugations
-   let userFilter = filter.map(x=> ` and not COLUMN_NAME like '%${x}__%' `).join("");
+   let userFilter = filter.length ?  filter.map(x=> ` and not COLUMN_NAME like '%${x}__%' `).join("") : "";
    let type = await db.raw(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE ${baseFilter} ${userFilter} ORDER BY random() limit 1; `);
    //check before
-   if(!type || !type.rows || type.rows < 1 || !type.rows[0].column_name) if(!secondTime) return getNewWord(null,null,true); else throw "Server could not query verbs, check data still exists"; //run again but with not limitations and then check second time so it only runs once not recusively.
+   //if(!type || !type.rows || type.rows < 1 || !type.rows[0].column_name) if(!secondTime) return getNewWord(null,null,true); else throw "Server could not query verbs, check data still exists"; //run again but with not limitations and then check second time so it only runs once not recusively.
    type = type.rows[0].column_name;
    let infinitive =  await db.raw("SELECT * FROM verbs ORDER BY random() LIMIT 1");
    infinitive = infinitive.rows[0];
    let broketype = type.split("__").map(x=> x.split("_").join(" "));
    let pr = pronouns.filter(x=> x.key === broketype[2])[0].data;
    pr = pr[Math.floor(Math.random() * Math.floor(pr.length-1))];
-   let data = {id: infinitive.id, infinitive: infinitive.infinitive, type: broketype[0], tense: broketype[1], form: pr, infinitive_english: infinitive.infinitive_english, answer: infinitive[type]}
+   let data = {id: infinitive.id, infinitive: infinitive.infinitive, type: broketype[0], tense: broketype[1], form: pr, infinitive_english: infinitive.infinitive_english, answer: infinitive[type], message: secondTime ? "Using default settings due to over filtering" : undefined}
    return data;
 };
 
@@ -111,7 +112,7 @@ async function setSettings(data, token)
     if(!username) throw "";
   } catch { throw "Must be logged in to set settings -- invalid token"}
   settings = defaultFilter.join(",");
-  if(data && data.filter && data.filter.length) settings = data.filter.join(",");
+  if(data && data.filter) settings = data.filter.join(",");
   await db.raw(`UPDATE users SET settings = '${settings}' WHERE username = '${username}'`);
   return {message: "updated settings"};
 }
