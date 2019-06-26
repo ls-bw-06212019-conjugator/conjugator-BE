@@ -26,8 +26,8 @@ exports.up = function(knex, Promise) {
         tbl.bigInteger("future_perfect_i");
         tbl.bigInteger("past_perfect_c");
         tbl.bigInteger("past_perfect_i");
-        tbl.bigInteger("preterit_archaic_c");
-        tbl.bigInteger("preterit_archaic_i");
+        tbl.bigInteger("preterite_archaic_c");
+        tbl.bigInteger("preterite_archaic_i");
         tbl.bigInteger("conditional_perfect_c");
         tbl.bigInteger("conditional_perfect_i");
     })
