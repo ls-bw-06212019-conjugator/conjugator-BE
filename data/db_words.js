@@ -111,10 +111,12 @@ async function setSettings(data, token)
     username = await db_auth.checkAuth(token);
     if(!username) throw "";
   } catch { throw "Must be logged in to set settings -- invalid token"}
-  settings = defaultFilter.join(",");
+  let settings = defaultFilter.join(",");
   if(data && data.filter) settings = data.filter.join(",");
   await db.raw(`UPDATE users SET settings = '${settings}' WHERE username = '${username}'`);
-  return {message: "updated settings"};
+  settings = await db.raw(`SELECT settings FROM users WHERE username = '${username}'`)
+  settings = settings.rows[0].settings;
+  return {filter: settings.split(",")};
 }
 
 async function getSettings(token)

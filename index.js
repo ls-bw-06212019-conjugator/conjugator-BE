@@ -45,7 +45,7 @@ server.get("/api/words/:id",
   server.post("/api/settings",
   (req,res) => { db_words.setSettings(req.body, req.headers.token ? req.headers.token : null)
     .then(result => res.status(200).json(result))
-    .catch(err => res.status(400).json({error: err, message: "Please login to set setting"}))
+    //.catch(err => res.status(400).json({error: err, message: "Please login to set setting -- interal error"}))
   });
 
   server.get("/api/settings",
