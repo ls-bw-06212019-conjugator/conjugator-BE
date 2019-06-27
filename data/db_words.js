@@ -1,7 +1,7 @@
 const db = require('./dbConfig');
 const db_auth = require('./db_auth.js');
 
-const defaultFilter = ['imperative', 'subjuctive', 'archaic']
+const defaultFilter = ['imperative', 'subjunctive','future','imperfect','conditional','present_perfect','future_perfect','past_perfect','preterite_archaic','conditional_perfect' ];
 
 module.exports = {
     getNewWord,
@@ -9,7 +9,10 @@ module.exports = {
     getStats,
     findWord,
     getSettings,
-    setSettings
+    setSettings,
+    getGoal,
+    setGoal,
+    defaultFilter
   };
 
 const pronouns =  //list of all pronouns set up as a dictionary of key and value, value is selected at random from the length of the array
@@ -28,8 +31,9 @@ async function getNewWord(filter=null, token=null, secondTime=false) //gets a ne
    if(!filter) filter = defaultFilter;
    if(token){filter = await getSettings(token); filter = filter.filter;}
    //NOTE: this is a subtractive method not Additive so Keep in mind if you add new columns to verb you will need to eliminate any columns that arent answers
+   if(filter[0]==='') filter = [];
    let baseFilter = "TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' and NOT COLUMN_NAME = 'id'"; //removes all columns that arent conugations
-   let userFilter = filter.map(x=> ` and not COLUMN_NAME like '%${x}__%' `).join("");
+   let userFilter = filter.length ?  filter.map(x=> ` and not COLUMN_NAME like '%${x}__%' `).join("") : "";
    let type = await db.raw(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE ${baseFilter} ${userFilter} ORDER BY random() limit 1; `);
    //check before
    if(!type || !type.rows || type.rows < 1 || !type.rows[0].column_name) if(!secondTime) return getNewWord(null,null,true); else throw "Server could not query verbs, check data still exists"; //run again but with not limitations and then check second time so it only runs once not recusively.
@@ -39,7 +43,7 @@ async function getNewWord(filter=null, token=null, secondTime=false) //gets a ne
    let broketype = type.split("__").map(x=> x.split("_").join(" "));
    let pr = pronouns.filter(x=> x.key === broketype[2])[0].data;
    pr = pr[Math.floor(Math.random() * Math.floor(pr.length-1))];
-   let data = {id: infinitive.id, infinitive: infinitive.infinitive, type: broketype[0], tense: broketype[1], form: pr, infinitive_english: infinitive.infinitive_english, answer: infinitive[type]}
+   let data = {id: infinitive.id, infinitive: infinitive.infinitive, type: broketype[0], tense: broketype[1], form: pr, infinitive_english: infinitive.infinitive_english, answer: infinitive[type], message: secondTime ? "Using default settings due to over filtering" : undefined}
    return data;
 };
 
@@ -54,7 +58,7 @@ async function addStats(obj, token=null) //sets globabl stats always and updates
    var column_type = `${type}_${correct ? "c" : "i"}`; 
    var column_tense = `${tense}_${correct ? "c" : "i"}`;
    //query global
-   await db.raw(`UPDATE global_stats SET ${column_type} = ${column_type} + 1,  ${column_tense} = ${column_tense} + 1;`); //must use await or function ends before db finishes so db never updates data
+   await db.raw(`UPDATE global_stats SET ${column_type} = ${column_type} + 1,  ${column_tense} = ${column_tense} + 1, total = total + 1${correct ? ", correct = correct + 1" : ""};`); //must use await or function ends before db finishes so db never updates data
    
    //verify token
    var username;
@@ -65,7 +69,7 @@ async function addStats(obj, token=null) //sets globabl stats always and updates
    } catch { return {message: "add compete: Global only due to invalid token"} }
 
    //set peronsal data
-   await db.raw(`UPDATE users SET ${column_type} = array_append(${column_type},${obj.id}), ${column_tense} = array_append(${column_tense},${obj.id}) WHERE username = '${username}'`);
+   await db.raw(`UPDATE users SET ${column_type} = array_append(${column_type},${obj.id}), ${column_tense} = array_append(${column_tense},${obj.id}), total = total + 1${correct ? ", correct = correct + 1,  daily_progress = daily_progress + 1 " : ""} WHERE username = '${username}'`);
 
    //handle incorrect
    if(!correct){await db.raw(`UPDATE users SET current_streak = 0 WHERE username = '${username}'`); return {message: "add complete: Global and Personal"};}
@@ -87,13 +91,17 @@ async function getStats(token = null) //gives global stats always and gives pers
 {
    var global =  await db.raw("SELECT * FROM global_stats");
    global = global.rows[0];
-   global.id = undefined;   
+   global.id = undefined;
+   var best = await db.raw("SELECT username, best_streak FROM users ORDER BY best_streak DESC LIMIT 5");   
+   best = best.rows;
+   global.best_streaks = best;
    if(!token) return {globals: global}
    var username;
-   //try{
+   try{
+   
       username = await db_auth.checkAuth(token);
       if(!username)  return {globals: global, message: "token passed but was not correct"}
-   //} catch { return {globals: global, message: "token passed but internal error"}}
+   } catch { return {globals: global, message: "token passed but internal error"}}
    var personal = await db.raw(`SELECT * FROM users WHERE username = '${username}'`)
    personal = personal.rows[0];
    personal.authentication = undefined;
@@ -110,10 +118,12 @@ async function setSettings(data, token)
     username = await db_auth.checkAuth(token);
     if(!username) throw "";
   } catch { throw "Must be logged in to set settings -- invalid token"}
-  settings = defaultFilter.join(",");
-  if(data && data.filter && data.filter.length) settings = data.filter.join(",");
+  let settings = defaultFilter.join(",");
+  if(data && data.filter) settings = data.filter.join(",");
   await db.raw(`UPDATE users SET settings = '${settings}' WHERE username = '${username}'`);
-  return {message: "updated settings"};
+  settings = await db.raw(`SELECT settings FROM users WHERE username = '${username}'`)
+  settings = settings.rows[0].settings;
+  return {filter: settings.split(",")};
 }
 
 async function getSettings(token)
@@ -125,11 +135,38 @@ async function getSettings(token)
     username = await db_auth.checkAuth(token);
     if(!username) throw "";
   } catch { return {filter: defaultFilter, message: "Must be logged in to get settings -- invalid token"};}
-  let settings = await db.raw(`SELECT settings FROM users WHERE username = '${username}'`)
-  settings = settings.rows[0].settings;
+  let settings = await db.raw(`SELECT filter FROM users WHERE username = '${username}'`)
+  settings = settings.rows[0].filter;
   return {filter: settings.split(",")};
 }
 
+async function getGoal(token)
+{
+ if(!token) throw "Must send token - please login";
+ try
+ {
+   username = await db_auth.checkAuth(token);
+   if(!username) throw "";
+ } catch { return {filter: defaultFilter, message: "Must be logged in -- invalid token"};}
+
+ let goal = await db.raw(`SELECT daily_progress, daily_goal FROM users WHERE username = '${username}'`);
+ return goal.rows[0];
+}
+
+async function setGoal(body, token)
+{
+ if(!token) throw "Must send token - please login";
+ if(!body || !body.goal || isNaN(body.goal) || body.goal < 1) throw "Invalid goal data -- either not defined or not a valid number"
+ try
+ {
+   username = await db_auth.checkAuth(token);
+   if(!username) throw "";
+ } catch { return {filter: defaultFilter, message: "Must be logged in -- invalid token"};}
+
+ await db.raw(`UPDATE users SET daily_goal = ${Math.ceil(body.goal)} WHERE username = '${username}'`);
+ let goal = await db.raw(`SELECT daily_progress, daily_goal FROM users WHERE username = '${username}'`);
+ return goal.rows[0];
+}
 
 //below is test sql commands for above calls for debuging
 
