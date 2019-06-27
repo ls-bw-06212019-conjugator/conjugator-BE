@@ -1,7 +1,7 @@
 const db = require('./dbConfig');
 const db_auth = require('./db_auth.js');
 
-const defaultFilter = ['imperative', 'subjunctive', 'future', 'imperfect', 'conditional', 'present_perfect', 'future_perfect', 'past_perfect', 'preterite_archaic', 'conditional_perfect'];
+const defaultFilter = ['imperative', 'subjunctive', 'future', 'imperfect', 'conditional', 'present_perfect', 'future_perfect', 'past_perfect', 'preterite_archaic', 'conditional_perfect', 'vosotros'];
 
 module.exports = {
    getNewWord,
