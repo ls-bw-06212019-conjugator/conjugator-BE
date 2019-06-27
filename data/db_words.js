@@ -88,7 +88,10 @@ async function getStats(token = null) //gives global stats always and gives pers
 {
    var global =  await db.raw("SELECT * FROM global_stats");
    global = global.rows[0];
-   global.id = undefined;   
+   global.id = undefined;
+   var best = await db.raw("SELECT username, best_streak FROM users ORDER BY best_streak DESC LIMIT 5");   
+   best = best.rows;
+   global.best_streaks = best;
    if(!token) return {globals: global}
    var username;
    //try{
