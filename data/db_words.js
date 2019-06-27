@@ -18,11 +18,11 @@ module.exports = {
 const pronouns =  //list of all pronouns set up as a dictionary of key and value, value is selected at random from the length of the array
    [
       { key: "form 1s", data: ["yo"] },
-      { key: "form 2s", data: ["tú", "usted"] },
-      { key: "form 3s", data: ["él", "ella"] },
+      { key: "form 2s", data: ["tú"] },
+      { key: "form 3s", data: ["él", "ella", "usted"] },
       { key: "form 1p", data: ["nosotros", "nosotras"] },
-      { key: "form 2p", data: ["vosotros", "vosotras", "ustedes"] },
-      { key: "form 3p", data: ["ellos", "ellas"] }
+      { key: "form 2p", data: ["vosotros", "vosotras"] },
+      { key: "form 3p", data: ["ellos", "ellas", "ustedes"] }
    ]
 
 
@@ -35,7 +35,7 @@ async function getNewWord(filter = null, token = null, secondTime = false) //get
 
    //take care of the vosotros test case
    let dont_use_vosotros = filter.filter(x=> x === "vosotros");
-   if(dont_use_vosotros.length) filter = filter.filter(x=> x !== "vosotros");
+   if(dont_use_vosotros.length) { filter = filter.filter(x=> x !== "vosotros"); filter.push("__form_2p"); }
 
    let baseFilter = "TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' and NOT COLUMN_NAME = 'id'"; //removes all columns that arent conugations
    let userFilter = filter.length ? filter.map(x => ` and not COLUMN_NAME like '%${x}__%' `).join("") : "";
@@ -55,6 +55,7 @@ async function getNewWord(filter = null, token = null, secondTime = false) //get
    
    //remove any pronouns that are unwanted due to a setting
    if(dont_use_vosotros.length) pr = pr.filter(x=> x !== "vosotros" && x !== "vosotras");
+   if(pr.length === 0) return getNewWord(null,null,true);
 
    //pick a random one
    pr = pr[Math.floor(Math.random() * Math.floor(pr.length))];
