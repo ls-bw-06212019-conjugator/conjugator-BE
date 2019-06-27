@@ -6,6 +6,8 @@ exports.seed = function(knex, Promise) {
       // Inserts seed entries
       return knex('global_stats').insert([
         {id: 1, 
+          total: 0,
+          correct: 0,
           //types
           indicative_c: 0,
           indicative_i: 0,
