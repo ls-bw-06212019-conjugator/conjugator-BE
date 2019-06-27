@@ -2,6 +2,8 @@ exports.up = function(knex, Promise) {
     return knex.schema.createTable('global_stats', function(tbl) {
         // primary key
         tbl.increments('id'); // or bigIncrements
+        tbl.bigInteger("total").defaultTo(0);
+        tbl.bigInteger("correct").defaultTo(0);
         //types
         tbl.bigInteger("indicative_c");
         tbl.bigInteger("indicative_i");

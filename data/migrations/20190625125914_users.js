@@ -13,9 +13,13 @@ exports.up = function(knex, Promise) {
         tbl.integer("best_streak",4096).defaultTo(0);
         
         //settings
-        tbl.string("settings", 4096).defaultTo(defaultSettings.join(","));
+        tbl.string("filter", 4096).defaultTo(defaultSettings.join(","));
+        tbl.integer("daily_goal").defaultTo(50);
+        tbl.integer("daily_progress").defaultTo(0);
 
         //stats
+        tbl.integer("total").defaultTo(0);
+        tbl.integer("correct").defaultTo(0);
         //mood
         tbl.specificType("indicative_c","int ARRAY");
         tbl.specificType("subjunctive_c","int ARRAY");
