@@ -32,18 +32,34 @@ async function getNewWord(filter = null, token = null, secondTime = false) //get
    if (token) { filter = await getSettings(token); filter = filter.filter; }
    //NOTE: this is a subtractive method not Additive so Keep in mind if you add new columns to verb you will need to eliminate any columns that arent answers
    if (filter[0] === '') filter = [];
-   let use_vosotros = filter.find(x=> x === "vosotros");
+
+   //take care of the vosotros test case
+   let dont_use_vosotros = filter.filter(x=> x === "vosotros");
+   if(dont_use_vosotros.length) filter = filter.filter(x=> x !== "vosotros");
+
    let baseFilter = "TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' and NOT COLUMN_NAME = 'id'"; //removes all columns that arent conugations
    let userFilter = filter.length ? filter.map(x => ` and not COLUMN_NAME like '%${x}__%' `).join("") : "";
    let type = await db.raw(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE ${baseFilter} ${userFilter} ORDER BY random() limit 1; `);
    //check before
    if (!type || !type.rows || type.rows < 1 || !type.rows[0].column_name) if (!secondTime) return getNewWord(null, null, true); else throw "Server could not query verbs, check data still exists"; //run again but with not limitations and then check second time so it only runs once not recusively.
+   //then assign type
    type = type.rows[0].column_name;
+
+   //now look up the column in a random word
    let infinitive = await db.raw("SELECT * FROM verbs ORDER BY random() LIMIT 1");
    infinitive = infinitive.rows[0];
+   
+   //then select a pornoun
    let broketype = type.split("__").map(x => x.split("_").join(" "));
    let pr = pronouns.filter(x => x.key === broketype[2])[0].data;
-   pr = pr[Math.floor(Math.random() * Math.floor(pr.length - 1))];
+   
+   //remove any pronouns that are unwanted due to a setting
+   if(dont_use_vosotros.length) pr = pr.filter(x=> x !== "vosotros" && x !== "vosotras");
+
+   //pick a random one
+   pr = pr[Math.floor(Math.random() * Math.floor(pr.length))];
+
+   //then build the return data
    let data = { id: infinitive.id, infinitive: infinitive.infinitive, type: broketype[0], tense: broketype[1], form: pr, infinitive_english: infinitive.infinitive_english, answer: infinitive[type], message: secondTime ? "Using default settings due to over filtering" : undefined }
    return data;
 };
@@ -131,7 +147,6 @@ async function getStats(token = null) //gives global stats always and gives pers
    {
       let num = best_percet.findIndex(x => x.username === username);
       num = num < 0 ? 0 : num;
-      console.log(best_percet)
       personal.percent_position = Math.floor(((num) / (best_percet.length-1))*100);
    } else personal.percent_position = 0;
 
