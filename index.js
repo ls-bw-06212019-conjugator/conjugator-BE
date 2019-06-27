@@ -22,13 +22,13 @@ server.listen(port, function() {
 server.get("/api/stats",
   (req,res) => { db_words.getStats(req.headers.token ? req.headers.token : null)
   .then(result => res.status(200).json(result))
-  //.catch(err => res.status(400).json({error: err, message: "Could not gather from database"}))
+  .catch(err => res.status(400).json({error: err, message: "Could not gather from database"}))
   });
 
 server.get("/api/words",
   (req,res) => { db_words.getNewWord(req.body.filter ? req.body.filter : null, req.headers.token ? req.headers.token : null )
   .then(result => res.status(200).json(result))
-  //.catch(err => res.status(400).json({error: err, message: "Could not gather from database"}))
+  .catch(err => res.status(400).json({error: err, message: "Could not gather from database"}))
   });
 server.get("/api/words/:id",
   (req,res) => { db_words.findWord(req.params.id)
@@ -45,14 +45,27 @@ server.get("/api/words/:id",
   server.post("/api/settings",
   (req,res) => { db_words.setSettings(req.body, req.headers.token ? req.headers.token : null)
     .then(result => res.status(200).json(result))
-    //.catch(err => res.status(400).json({error: err, message: "Please login to set setting -- interal error"}))
+    .catch(err => res.status(400).json({error: err, message: "Please login to set setting -- interal error"}))
   });
 
   server.get("/api/settings",
   (req,res) => { db_words.getSettings(req.headers.token ? req.headers.token : null)
     .then(result => res.status(200).json(result)) //sends default settings if token is invalid
-    //.catch(err => res.status(400).json({error: err, message: "Internal Server Error"}))
+    .catch(err => res.status(400).json({error: err, message: "Internal Server Error"}))
   });
+
+  server.get("/api/goal",
+  (req,res) => { db_words.getGoal(req.headers.token ? req.headers.token : null)
+    .then(result => res.status(200).json(result)) //sends default settings if token is invalid
+    .catch(err => res.status(400).json({error: err, message: "Internal Server Error"}))
+  });
+
+  server.post("/api/goal",
+  (req,res) => { db_words.setGoal(req.body, req.headers.token ? req.headers.token : null)
+    .then(result => res.status(200).json(result)) //sends default settings if token is invalid
+    .catch(err => res.status(400).json({error: err, message: "Internal Server Error"}))
+  });
+
 
 /* server.get("/api/users/:id", --unused
   (req,res) => { db_auth.find(req.headers.token, req.params.id)
@@ -77,8 +90,8 @@ server.post("/api/register",
     db_auth.register(req.body.username, req.body.password)
         .then(result => res.status(201).json(result))
         .catch(err => res.status(500).json({error: err, message: "Interal error"}))
-  }
-  )//.catch(err => res.status(400).json({error: err, message: "Username is already in use"}))
+  })
+  .catch(err => res.status(400).json({error: err, message: "Username is already in use"}))
   }
 );
 
