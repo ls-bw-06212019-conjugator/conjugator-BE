@@ -2,9 +2,13 @@ const db = require('./data/dbConfig');
 
 async function resetDaily() 
 {
-   await db.raw("UPDATE users SET daily_progress = 0;");
+    try{
+        await db.raw("UPDATE users SET daily_progress = 0;");
+    }catch { console.log("error")}
    return;
 }
-resetDaily();
-
-process.exit();
+resetDaily()
+.then(()=> {
+    console.log("ran daily update");
+    process.exit();
+} )
