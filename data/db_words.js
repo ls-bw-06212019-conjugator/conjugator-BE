@@ -32,6 +32,7 @@ async function getNewWord(filter = null, token = null, secondTime = false) //get
    if (token) { filter = await getSettings(token); filter = filter.filter; }
    //NOTE: this is a subtractive method not Additive so Keep in mind if you add new columns to verb you will need to eliminate any columns that arent answers
    if (filter[0] === '') filter = [];
+   let use_vosotros = filter.find(x=> x === "vosotros");
    let baseFilter = "TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' and NOT COLUMN_NAME = 'id'"; //removes all columns that arent conugations
    let userFilter = filter.length ? filter.map(x => ` and not COLUMN_NAME like '%${x}__%' `).join("") : "";
    let type = await db.raw(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE ${baseFilter} ${userFilter} ORDER BY random() limit 1; `);
@@ -57,6 +58,7 @@ async function addStats(obj, token = null) //sets globabl stats always and updat
    type = type.split(" ").join("_"); tense = tense.split(" ").join("_");
    var column_type = `${type}_${correct ? "c" : "i"}`;
    var column_tense = `${tense}_${correct ? "c" : "i"}`;
+
    //query global
    await db.raw(`UPDATE global_stats SET ${column_type} = ${column_type} + 1,  ${column_tense} = ${column_tense} + 1, total = total + 1${correct ? ", correct = correct + 1" : ""};`); //must use await or function ends before db finishes so db never updates data
 
@@ -109,7 +111,7 @@ async function getStats(token = null) //gives global stats always and gives pers
    var personal = await db.raw(`SELECT * FROM users WHERE username = '${username}'`)
    var best_percet = await db.raw(`Select username, correct, total FROM users WHERE NOT total = 0 ORDER BY (correct / total) DESC;`)
    best_percet = best_percet.rows;
-   
+
    //have to revers here cuz of weird sql bug
    best_percet = best_percet.reverse(); 
    best = best.reverse();
@@ -145,8 +147,8 @@ async function setSettings(data, token) {
    } catch { throw "Must be logged in to set settings -- invalid token" }
    let settings = defaultFilter.join(",");
    if (data && data.filter) settings = data.filter.join(",");
-   await db.raw(`UPDATE users SET settings = '${settings}' WHERE username = '${username}'`);
-   settings = await db.raw(`SELECT settings FROM users WHERE username = '${username}'`)
+   await db.raw(`UPDATE users SET filter = '${settings}' WHERE username = '${username}'`);
+   settings = await db.raw(`SELECT filter FROM users WHERE username = '${username}'`)
    settings = settings.rows[0].filter;
    return { filter: settings.split(",") };
 }
@@ -186,7 +188,6 @@ async function setGoal(body, token) {
    let goal = await db.raw(`SELECT daily_progress, daily_goal FROM users WHERE username = '${username}'`);
    return goal.rows[0];
 }
-
 //below is test sql commands for above calls for debuging
 
 /*  get random infinitive
