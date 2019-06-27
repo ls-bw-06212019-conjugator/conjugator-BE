@@ -1,7 +1,7 @@
 require('dotenv').config();
 const session = require('express-session');
 const db_auth = require('./data/db_auth');
-const db_words = require('./data/db_words')
+const db_words = require('./data/db_words');
 const cors = require('cors');
 const express = require('express');
 const helmet = require('helmet');
