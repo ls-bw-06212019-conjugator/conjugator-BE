@@ -1,7 +1,7 @@
 const db = require('./dbConfig');
 const db_auth = require('./db_auth.js');
 
-const defaultFilter = ['imperative', 'subjunctive', 'future', 'imperfect', 'conditional', 'present_perfect', 'future_perfect', 'past_perfect', 'preterite_archaic', 'conditional_perfect', 'vosotros'];
+const defaultFilter = ['imperative', 'subjunctive', 'future', 'imperfect', 'conditional', 'present_perfect', 'future_perfect', 'past_perfect', 'preterite_archaic', 'conditional_perfect'];
 
 module.exports = {
    getNewWord,
@@ -35,7 +35,7 @@ async function getNewWord(filter = null, token = null, secondTime = false) //get
 
    //take care of the vosotros test case
    let dont_use_vosotros = filter.filter(x=> x === "vosotros");
-   if(dont_use_vosotros.length) { filter = filter.filter(x=> x !== "vosotros"); filter.push("__form_2p"); }
+   if(dont_use_vosotros.length === 0) { filter = filter.filter(x=> x !== "vosotros"); filter.push("__form_2p"); }
 
    let baseFilter = "TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' and NOT COLUMN_NAME = 'id'"; //removes all columns that arent conugations
    let userFilter = filter.length ? filter.map(x => ` and not COLUMN_NAME like '%${x}__%' `).join("") : "";
@@ -54,8 +54,8 @@ async function getNewWord(filter = null, token = null, secondTime = false) //get
    let pr = pronouns.filter(x => x.key === broketype[2])[0].data;
    
    //remove any pronouns that are unwanted due to a setting
-   if(dont_use_vosotros.length) pr = pr.filter(x=> x !== "vosotros" && x !== "vosotras");
-   if(pr.length === 0) return getNewWord(null,null,true);
+   if(dont_use_vosotros.length === 0) pr = pr.filter(x=> x !== "vosotros" && x !== "vosotras");
+   if(pr.length === 0) return getNewWord(null,null,true); //condom so that we dont accidently have no pronoun
 
    //pick a random one
    pr = pr[Math.floor(Math.random() * Math.floor(pr.length))];
