@@ -37,6 +37,9 @@ async function getNewWord(filter = null, token = null, secondTime = false) //get
    //take care of the vosotros test case
    let dont_use_vosotros = filter.filter(x=> x === "vosotros");
    filter = filter.filter(x=> x !== "vosotros");
+   
+   //fixed a but with imperative filtering
+   if(filter.filter(x=> x === "imperative").length > 0) filter.push(["imperative_negative", "imperative_positive"]);
 
    let baseFilter = "TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' and NOT COLUMN_NAME = 'id'"; //removes all columns that arent conugations
    let userFilter = filter.length ? filter.map(x => ` and not COLUMN_NAME like '%${x}\\_\\_%' `).join("") : "";
