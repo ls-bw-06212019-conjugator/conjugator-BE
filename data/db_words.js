@@ -1,7 +1,7 @@
 const db = require('./dbConfig');
 const db_auth = require('./db_auth.js');
 
-const defaultFilter = ['imperative', 'subjunctive', 'future', 'imperfect', 'conditional', 'present_perfect', 'future_perfect', 'past_perfect', 'preterite_archaic', 'conditional_perfect'];
+const defaultFilter = ["imperative", "subjunctive", "future", "imperfect", "conditional", "present_perfect", "future_perfect", "past_perfect", "preterite_archaic", "conditional_perfect"];
 
 module.exports = {
    getNewWord,
@@ -29,24 +29,26 @@ const pronouns =  //list of all pronouns set up as a dictionary of key and value
 async function getNewWord(filter = null, token = null, secondTime = false) //gets a new word from the database at random
 {
    if(secondTime) console.log("this cyled twice");
-   if (!filter) filter = defaultFilter;
-   if (token) { filter = await getSettings(token); filter = filter.filter; }
+   if (!filter) filter = defaultFilter;            // If filter isn't in request body, use defaultFilter from above
+   if (token) { filter = await getSettings(token); filter = filter.filter; }     // If a token is attached, set filter to the user's saved settings
    //NOTE: this is a subtractive method not Additive so Keep in mind if you add new columns to verb you will need to eliminate any columns that arent answers
-   if (filter[0] === '') filter = [];
+   if (filter[0] === '') filter = [];     // If the first element is an empty string, then we have an empty filter
 
    //take care of the vosotros test case
-   let dont_use_vosotros = filter.filter(x=> x === "vosotros");
-   filter = filter.filter(x=> x !== "vosotros");
+   let dont_use_vosotros = filter.filter(x=> x === "vosotros");      // Check for vosotros and store
+   filter = filter.filter(x=> x !== "vosotros");                     // Remove vosotros from filter array
    
    //fixed a but with imperative filtering
-   if(filter.filter(x=> x === "imperative").length > 0) filter.push(["imperative_negative", "imperative_positive"]);
+   if(filter.filter(x=> x === "imperative").length > 0) filter.push("imperative_negative", "imperative_positive", "imperative_affirmative")  // If imperative in filter, push both variations into filter
+
 
    let baseFilter = "TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' and NOT COLUMN_NAME = 'id'"; //removes all columns that arent conugations
-   let userFilter = filter.length ? filter.map(x => ` and not COLUMN_NAME like '%${x}\\_\\_%' `).join("") : "";
-   let vosFilter = dont_use_vosotros.length === 0 ? ` and not COLUMN_NAME like '%\\_\\_form\\_2p%'` : "";
+   let userFilter = filter.length ? filter.map(x => ` and not COLUMN_NAME like '%${x}\\_\\_%' `).join("") : "";   // Removes all columns that are in the filter
+   let vosFilter = dont_use_vosotros.length === 0 ? ` and not COLUMN_NAME like '%\\_\\_form\\_2p%'` : "";         // Removes all vosotros columns if filtered
    
    //build this nasty long sql call
    let type = await db.raw(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE ${baseFilter} ${userFilter} ${vosFilter} ORDER BY random() limit 1; `);
+
 
    //check before
    if (!type || !type.rows || type.rows < 1 || !type.rows[0].column_name) if (!secondTime) return getNewWord(null, null, true); else throw "Server could not query verbs, check data still exists"; //run again but with not limitations and then check second time so it only runs once not recusively.
@@ -57,7 +59,7 @@ async function getNewWord(filter = null, token = null, secondTime = false) //get
    let infinitive = await db.raw("SELECT * FROM verbs ORDER BY random() LIMIT 1");
    infinitive = infinitive.rows[0];
    
-   //then select a pornoun
+   //then select a pronoun
    let broketype = type.split("__").map(x => x.split("_").join(" "));
    let pr = pronouns.filter(x => x.key === broketype[2])[0].data;
    
