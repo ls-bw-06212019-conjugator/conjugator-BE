@@ -44,7 +44,7 @@ async function getNewWord(filter = null, token = null, secondTime = false) //get
 
    let baseFilter = "TABLE_NAME = 'verbs' and NOT COLUMN_NAME = 'infinitive' and NOT COLUMN_NAME = 'infinitive_english' and NOT COLUMN_NAME = 'id'"; //removes all columns that arent conugations
    let userFilter = filter.length ? filter.map(x => ` and not COLUMN_NAME like '%${x}\\_\\_%' `).join("") : "";   // Removes all columns that are in the filter
-   let vosFilter = filter.includes('vosotros') ? ` and not COLUMN_NAME like '%\\_\\_form\\_2p%'` : "";         // Removes all vosotros columns if filtered
+   let vosFilter = dont_use_vosotros ? ` and not COLUMN_NAME like '%\\_\\_form\\_2p%'` : "";                      // Removes all vosotros columns if filtered
    
    //build this nasty long sql call
    let type = await db.raw(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE ${baseFilter} ${userFilter} ${vosFilter} ORDER BY random() limit 1; `);
